@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>機場接送預約與派車示範｜LINE＋Messenger 收件匣</title>
+<style>
+:root{--ink:#1f2a37;--sub:#5b6675;--line:#d5dbe3;--bg:#f6f8fb;--card:#fff;--deep:#1e3a5f;--tint:#eef2f7;--ok:#1f6e52;--okbg:#e7f4ee;--bad:#a8412f;--badbg:#fbeae6;--warn:#8a5a00;--warnbg:#fff4e0;--line-green:#06c755;--msg-blue:#0866ff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 -apple-system,"Segoe UI","Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif}
+header{background:var(--deep);color:#fff;padding:20px 24px}
+header h1{margin:0 0 6px;font-size:21px}
+header p{margin:0;opacity:.92;max-width:980px}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.18);margin:8px 6px 0 0}
+.wrap{max-width:1220px;margin:0 auto;padding:16px}
+.grid{display:grid;grid-template-columns:330px 1fr;gap:16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:980px){.grid,.grid2{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px}
+.card h2{margin:0 0 4px;font-size:16px}
+.hint{color:var(--sub);font-size:12.5px;margin:0 0 10px}
+.conv{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px;cursor:pointer;background:#fff;width:100%;text-align:left;font:inherit;color:inherit}
+.conv.sel{border-color:var(--deep);background:var(--tint)}
+.ch{display:inline-block;font-size:11px;font-weight:700;color:#fff;border-radius:4px;padding:0 6px;margin-right:6px}
+.ch.line{background:var(--line-green)}.ch.msg{background:var(--msg-blue)}
+.win{font-size:11.5px;margin-left:6px}
+.win.ok{color:var(--ok)}.win.no{color:var(--bad)}
+.msgs{border:1px solid var(--line);border-radius:8px;padding:10px;min-height:150px;background:#fafbfc;max-height:260px;overflow:auto}
+.b{max-width:80%;padding:6px 10px;border-radius:10px;margin:4px 0;font-size:13px}
+.b.in{background:#fff;border:1px solid var(--line)}
+.b.out{background:#dff3e8;margin-left:auto}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}
+label.f{display:flex;flex-direction:column;font-size:12.5px;color:var(--sub);gap:3px}
+select,input[type=number],input[type=text],input[type=time],input[type=date]{font:inherit;color:var(--ink);padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:#fff}
+input.sm{width:84px}
+button.p{font:inherit;padding:6px 14px;border:1px solid var(--deep);background:var(--deep);color:#fff;border-radius:6px;cursor:pointer}
+button.g{font:inherit;padding:6px 12px;border:1px solid var(--deep);background:#fff;color:var(--deep);border-radius:6px;cursor:pointer}
+.fare{font-size:24px;font-weight:700;color:var(--deep)}
+.brk{font-size:12.5px;color:var(--sub)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{border-bottom:1px solid var(--tint);padding:5px 7px;text-align:left;vertical-align:middle}
+th{background:var(--tint)}
+td.n{text-align:right}
+.note{padding:9px 12px;border-radius:8px;margin-top:8px;font-size:13px}
+.note.ok{background:var(--okbg);border:1px solid #a9d6c2}
+.note.bad{background:var(--badbg);border:1px solid #ebb9ae}
+.note.warn{background:var(--warnbg);border:1px solid #f2c185}
+pre.pv{white-space:pre-wrap;background:#f1f8f4;border:1px solid #bfe3cc;border-radius:8px;padding:8px 10px;font:13px/1.55 inherit;margin:6px 0}
+.tw{overflow-x:auto}
+footer .card{font-size:13px}
+footer h3{margin:10px 0 4px;font-size:14px}
+footer ul{margin:4px 0;padding-left:20px}
+</style>
+</head>
+<body>
+<header>
+ <h1>機場接送預約與派車示範</h1>
+ <p>客人從 LINE 或 Messenger 傳訊、填同一張預約單；車資依「機場 × 區域 × 車型」自動帶出；後台派司機，派車後產生要送給客人與司機的 LINE 通知。所有欄位都能改，結果即時重算。</p>
+ <span class="tag">投標用概念示意</span><span class="tag">資料全為虛構</span><span class="tag">未連線 LINE／Messenger</span>
+</header>
+<div class="wrap">
+ <div class="grid">
+  <section class="card">
+   <h2>統一收件匣</h2>
+   <p class="hint">兩個管道的對話在同一個列表。Messenger 只有在客人最後一次傳訊後 24 小時內，才能主動發一般訊息。</p>
+   <div id="inbox"></div>
+   <label class="f" style="margin-top:6px">模擬「現在」距離客人最後訊息幾小時（只影響 Messenger）
+    <input type="number" id="hrs" min="0" max="72" step="1" value="3" class="sm">
+   </label>
+  </section>
+  <section class="card">
+   <h2 id="convTitle">對話</h2>
+   <div class="msgs" id="msgs"></div>
+   <div class="row"><input type="text" id="reply" style="flex:1;min-width:200px" placeholder="在後台回覆，訊息會回到客人原本的管道"><button class="g" id="send" type="button">回覆</button></div>
+   <div id="sendNote"></div>
+  </section>
+ </div>
+
+ <div class="grid2">
+  <section class="card">
+   <h2>共用預約單</h2>
+   <p class="hint">LINE 與 Messenger 的客人都開同一張表單。</p>
+   <div class="row">
+    <label class="f">服務<select id="kind"><option value="pick">接機（機場 → 住處）</option><option value="drop">送機（住處 → 機場）</option></select></label>
+    <label class="f">機場<select id="airport"></select></label>
+   </div>
+   <div class="row">
+    <label class="f">區域<select id="zone"></select></label>
+    <label class="f">車型<select id="car"><option value="sedan">轎車（4 人）</option><option value="van">休旅車（7 人）</option></select></label>
+   </div>
+   <div class="row">
+    <label class="f">日期<input type="date" id="date" value="2026-11-08"></label>
+    <label class="f">時間<input type="time" id="time" value="06:30"></label>
+    <label class="f">加停點<input type="number" id="stops" min="0" max="3" value="0" class="sm"></label>
+   </div>
+   <div class="fare" id="fare"></div>
+   <div class="brk" id="brk"></div>
+   <div class="row"><button class="p" id="book" type="button">送出預約</button></div>
+   <div id="bookNote"></div>
+  </section>
+  <section class="card">
+   <h2>車資表（後台可直接改）</h2>
+   <p class="hint">轎車基本價；休旅車加價、夜間（22:00–06:00）加價、每個加停點加價都可設定。改了左邊報價立刻重算。</p>
+   <div class="row">
+    <label class="f">休旅加價<input type="number" id="vanAdd" value="300" class="sm"></label>
+    <label class="f">夜間加價<input type="number" id="nightAdd" value="200" class="sm"></label>
+    <label class="f">每加停點<input type="number" id="stopAdd" value="200" class="sm"></label>
+   </div>
+   <div class="tw"><table><thead><tr><th>區域</th><th class="n">桃園機場</th><th class="n">松山機場</th></tr></thead><tbody id="fareTable"></tbody></table></div>
+  </section>
+ </div>
+
+ <section class="card">
+  <h2>訂單與派車</h2>
+  <p class="hint">同一位司機在前後 2.5 小時內已有任務，就不能再派（避免趕不上）。</p>
+  <div class="tw"><table><thead><tr><th>單號</th><th>來源</th><th>行程</th><th>時間</th><th class="n">車資</th><th>司機</th><th>派車</th></tr></thead><tbody id="orders"></tbody></table></div>
+  <div id="dispNote"></div>
+  <div id="preview"></div>
+ </section>
+</div>
+<footer class="wrap" style="padding-top:0">
+ <div class="card">
+  <h3>誠實聲明</h3>
+  <p>這是投標用的概念示意，用來說明預約、車資與派車要怎麼串起來。客人、司機、區域、車資全部虛構，不是任何業者的實際價格，也不是已完成的產品。</p>
+  <h3>這頁裡是模擬的</h3>
+  <ul>
+   <li>沒有連到 LINE 或 Messenger，訊息與通知只出現在這個頁面；資料存在分頁記憶體裡，重新整理就清空。</li>
+   <li>「距離最後訊息幾小時」是手動調的假設值，用來示範 Messenger 的 24 小時規則。</li>
+  </ul>
+  <h3>這頁裡真的在跑的邏輯</h3>
+  <ul>
+   <li>車資＝區域基本價＋休旅加價＋夜間加價＋加停點，全部由右邊車資表即時計算；改表格數字，報價跟著變。</li>
+   <li>派車衝突檢查：同一司機前後 2.5 小時內已有任務就擋下。Messenger 對話超過 24 小時，後台回覆會被擋並提示改用 LINE。</li>
+  </ul>
+  <h3>實際導入會怎麼做</h3>
+  <ul>
+   <li>LINE 用 Messaging API、Messenger 用 Meta 的 Messenger Platform，兩邊 Webhook 進同一個後台；Messenger 上線前需要 Meta 審核粉專權限。</li>
+   <li>程式與資料建在您自己的雲端與 GitHub 帳號，無伺服器架構，一般單量每月雲端費用約 NT$0–300。</li>
+  </ul>
+  <p style="color:var(--sub);margin-top:10px">劉佳政 · LINE i100263340 · i100263340@gmail.com</p>
+ </div>
+</footer>
+<script>
+(function(){
+ 'use strict';
+ var AIRPORTS = [{id:'tpe', n:'桃園機場'}, {id:'tsa', n:'松山機場'}];
+ var ZONES = [
+  {id:'z1', n:'台北市 信義／大安', tpe:1200, tsa:500},
+  {id:'z2', n:'台北市 中山／松山', tpe:1150, tsa:400},
+  {id:'z3', n:'台北市 士林／北投', tpe:1250, tsa:550},
+  {id:'z4', n:'新北市 板橋／中和', tpe:1000, tsa:650},
+  {id:'z5', n:'新北市 新店／汐止', tpe:1350, tsa:600},
+  {id:'z6', n:'桃園市區', tpe:700, tsa:1100}
+ ];
+ var DRIVERS = [{id:'d1', n:'陳師傅（轎車）', car:'sedan'}, {id:'d2', n:'林師傅（轎車）', car:'sedan'}, {id:'d3', n:'王師傅（休旅）', car:'van'}];
+ var CONVS = [
+  {id:'c1', ch:'line', name:'張小姐', msgs:[['in','您好，11/8 早上要送機，從信義區到桃園'],['out','您好，請填這張預約單，送出後會自動報價']]},
+  {id:'c2', ch:'msg', name:'Kevin', msgs:[['in','請問中和到松山機場多少錢？'],['in','兩個人兩件行李']]},
+  {id:'c3', ch:'line', name:'吳先生', msgs:[['in','我剛填好預約單了']]}
+ ];
+ var ORDERS = [
+  {id:'A1001', src:'line', who:'吳先生', trip:'松山機場 → 台北市 中山／松山', date:'2026-11-08', time:'07:30', fare:400, car:'sedan', driver:'d1'},
+  {id:'A1002', src:'msg', who:'Kevin', trip:'新北市 板橋／中和 → 松山機場', date:'2026-11-08', time:'13:00', fare:650, car:'sedan', driver:''}
+ ];
+ var cur = 'c1', seq = 1003;
+
+ function $(id){ return document.getElementById(id); }
+ function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+ function num(id){ var v = parseFloat($(id).value); return isNaN(v) ? 0 : Math.max(0, v); }
+ function chName(c){ return c === 'line' ? 'LINE' : 'Messenger'; }
+ function zone(id){ for (var i=0;i<ZONES.length;i++) if (ZONES[i].id===id) return ZONES[i]; return ZONES[0]; }
+ function airport(id){ for (var i=0;i<AIRPORTS.length;i++) if (AIRPORTS[i].id===id) return AIRPORTS[i]; return AIRPORTS[0]; }
+ function driver(id){ for (var i=0;i<DRIVERS.length;i++) if (DRIVERS[i].id===id) return DRIVERS[i]; return null; }
+ function mins(t){ var p = String(t).split(':'); return (+p[0])*60 + (+p[1] || 0); }
+ function money(n){ return 'NT$ ' + Math.round(n).toLocaleString(); }
+ function isNight(t){ var m = mins(t); return m >= 22*60 || m < 6*60; }
+ function msgOpen(){ return num('hrs') < 24; }
+
+ function renderInbox(){
+  var h = '';
+  CONVS.forEach(function(c){
+   var w = '';
+   if (c.ch === 'msg') w = msgOpen() ? '<span class="win ok">可回覆，剩 ' + (24 - num('hrs')) + ' 小時</span>' : '<span class="win no">已超過 24 小時</span>';
+   h += '<button type="button" class="conv' + (c.id===cur?' sel':'') + '" data-c="' + c.id + '"><span class="ch ' + c.ch + '">' + chName(c.ch) + '</span><b>' + esc(c.name) + '</b>' + w + '<br><small style="color:var(--sub)">' + esc(c.msgs[c.msgs.length-1][1]) + '</small></button>';
+  });
+  $('inbox').innerHTML = h;
+  var bs = $('inbox').querySelectorAll('button');
+  for (var i=0;i<bs.length;i++) bs[i].addEventListener('click', function(e){ cur = e.currentTarget.getAttribute('data-c'); $('sendNote').innerHTML=''; renderInbox(); renderConv(); });
+ }
+ function renderConv(){
+  var c = null; CONVS.forEach(function(x){ if (x.id===cur) c = x; });
+  $('convTitle').innerHTML = '<span class="ch ' + c.ch + '">' + chName(c.ch) + '</span>' + esc(c.name);
+  $('msgs').innerHTML = c.msgs.map(function(m){ return '<div class="b ' + m[0] + '">' + esc(m[1]) + '</div>'; }).join('');
+ }
+ function send(){
+  var c = null; CONVS.forEach(function(x){ if (x.id===cur) c = x; });
+  var t = $('reply').value.trim(); if (!t) return;
+  if (c.ch === 'msg' && !msgOpen()){
+   $('sendNote').innerHTML = '<div class="note bad">擋下：這位 Messenger 客人最後一次傳訊已超過 24 小時，Messenger 規則不允許主動發一般訊息。請等客人再傳訊，或請他改用 LINE 聯絡。</div>';
+   return;
+  }
+  c.msgs.push(['out', t]); $('reply').value = '';
+  $('sendNote').innerHTML = '<div class="note ok">已回覆到客人的 ' + chName(c.ch) + '。</div>';
+  renderInbox(); renderConv();
+ }
+
+ function quote(){
+  var z = zone($('zone').value), ap = $('airport').value, car = $('car').value, t = $('time').value, stops = num('stops');
+  var base = z[ap], parts = [['基本價（' + z.n + '－' + airport(ap).n + '）', base]];
+  if (car === 'van') parts.push(['休旅車', num('vanAdd')]);
+  if (isNight(t)) parts.push(['夜間 22:00–06:00', num('nightAdd')]);
+  if (stops > 0) parts.push(['加停點 × ' + stops, stops * num('stopAdd')]);
+  var total = 0; parts.forEach(function(p){ total += p[1]; });
+  return {total: total, parts: parts};
+ }
+ function renderQuote(){
+  var q = quote();
+  $('fare').textContent = money(q.total);
+  $('brk').textContent = q.parts.map(function(p){ return p[0] + ' ' + money(p[1]); }).join('＋');
+ }
+ function renderFareTable(){
+  var h = '';
+  ZONES.forEach(function(z, i){
+   h += '<tr><td>' + esc(z.n) + '</td><td class="n"><input type="number" class="sm" data-i="' + i + '" data-a="tpe" value="' + z.tpe + '"></td><td class="n"><input type="number" class="sm" data-i="' + i + '" data-a="tsa" value="' + z.tsa + '"></td></tr>';
+  });
+  $('fareTable').innerHTML = h;
+  var ins = $('fareTable').querySelectorAll('input');
+  for (var k=0;k<ins.length;k++) ins[k].addEventListener('input', function(e){
+   var v = parseFloat(e.target.value); ZONES[+e.target.getAttribute('data-i')][e.target.getAttribute('data-a')] = isNaN(v) ? 0 : Math.max(0, v); renderQuote();
+  });
+ }
+ function book(){
+  var c = null; CONVS.forEach(function(x){ if (x.id===cur) c = x; });
+  var q = quote(), z = zone($('zone').value), ap = airport($('airport').value);
+  var trip = $('kind').value === 'pick' ? ap.n + ' → ' + z.n : z.n + ' → ' + ap.n;
+  var id = 'A' + (seq++);
+  ORDERS.push({id:id, src:c.ch, who:c.name, trip:trip, date:$('date').value, time:$('time').value, fare:q.total, car:$('car').value, driver:''});
+  $('bookNote').innerHTML = '<div class="note ok">已建立 ' + id + '（' + esc(c.name) + '，來自 ' + chName(c.ch) + '），報價 ' + money(q.total) + '，到下方派車。</div>';
+  renderOrders();
+ }
+
+ function conflict(o, did){
+  for (var i=0;i<ORDERS.length;i++){
+   var x = ORDERS[i];
+   if (x.id===o.id || x.driver!==did || x.date!==o.date) continue;
+   if (Math.abs(mins(x.time) - mins(o.time)) < 150) return x;
+  }
+  return null;
+ }
+ function renderOrders(){
+  var h = '';
+  ORDERS.forEach(function(o){
+   var opts = '<option value="">（未派）</option>' + DRIVERS.map(function(d){ return '<option value="' + d.id + '"' + (o.driver===d.id?' selected':'') + (d.car!==o.car?' disabled':'') + '>' + esc(d.n) + (d.car!==o.car?'－車型不符':'') + '</option>'; }).join('');
+   h += '<tr><td>' + o.id + '</td><td><span class="ch ' + o.src + '">' + chName(o.src) + '</span>' + esc(o.who) + '</td><td>' + esc(o.trip) + '</td><td>' + o.date + ' ' + o.time + '</td><td class="n">' + money(o.fare) + '</td><td><select data-o="' + o.id + '">' + opts + '</select></td><td>' + (o.driver ? '<span style="color:var(--ok);font-weight:700">已派</span>' : '—') + '</td></tr>';
+  });
+  $('orders').innerHTML = h;
+  var ss = $('orders').querySelectorAll('select');
+  for (var i=0;i<ss.length;i++) ss[i].addEventListener('change', function(e){ dispatch(e.target.getAttribute('data-o'), e.target.value); });
+ }
+ function dispatch(oid, did){
+  var o = null; ORDERS.forEach(function(x){ if (x.id===oid) o = x; });
+  if (!did){ o.driver=''; $('dispNote').innerHTML=''; $('preview').innerHTML=''; renderOrders(); return; }
+  var c = conflict(o, did);
+  if (c){
+   $('dispNote').innerHTML = '<div class="note bad">擋下：' + esc(driver(did).n) + ' 在 ' + c.date + ' ' + c.time + ' 已有 ' + c.id + '，與 ' + o.time + ' 相隔不到 2.5 小時。</div>';
+   renderOrders(); return;
+  }
+  o.driver = did;
+  var d = driver(did);
+  $('dispNote').innerHTML = '<div class="note ok">' + o.id + ' 已派給 ' + esc(d.n) + '。</div>';
+  var toCust = '【派車通知】' + o.who + ' 您好\n日期時間：' + o.date + ' ' + o.time + '\n行程：' + o.trip + '\n司機：' + d.n + '\n車資：' + money(o.fare) + '（現場付款）';
+  var toDrv = '【新任務】' + o.id + '\n' + o.date + ' ' + o.time + '｜' + o.trip + '\n客人：' + o.who + '｜車資 ' + money(o.fare);
+  var custNote = o.src === 'msg' ? '<div class="note warn">這位客人來自 Messenger：若距離他最後一次傳訊已超過 24 小時，Messenger 不能主動通知，所以派車通知建議請客人加 LINE 好友後改由 LINE 發送。</div>' : '';
+  $('preview').innerHTML = '<div class="grid2" style="margin-top:8px"><div><b>送給客人（LINE）</b><pre class="pv">' + esc(toCust) + '</pre>' + custNote + '</div><div><b>送給司機（LINE）</b><pre class="pv">' + esc(toDrv) + '</pre></div></div>';
+  renderOrders();
+ }
+
+ $('airport').innerHTML = AIRPORTS.map(function(a){ return '<option value="' + a.id + '">' + a.n + '</option>'; }).join('');
+ $('zone').innerHTML = ZONES.map(function(z){ return '<option value="' + z.id + '">' + z.n + '</option>'; }).join('');
+ ['kind','airport','zone','car','time','stops','vanAdd','nightAdd','stopAdd','date'].forEach(function(id){ $(id).addEventListener('input', renderQuote); $(id).addEventListener('change', renderQuote); });
+ $('hrs').addEventListener('input', function(){ renderInbox(); });
+ $('send').addEventListener('click', send);
+ $('book').addEventListener('click', book);
+ renderInbox(); renderConv(); renderFareTable(); renderQuote(); renderOrders();
+})();
+</script>
+</body>
+</html>
